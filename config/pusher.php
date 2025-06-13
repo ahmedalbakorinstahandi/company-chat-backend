@@ -57,11 +57,8 @@ return [
         'key' => env('PUSHER_APP_KEY'),
         'secret' => env('PUSHER_APP_SECRET'),
         'options' => [
-            'cluster' => env('PUSHER_APP_CLUSTER'),
-            'encrypted' => true,
-            'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER').'.pusher.com',
-            'port' => env('PUSHER_PORT', 443),
-            'scheme' => env('PUSHER_SCHEME', 'https'),
+            'cluster' => 'us3',
+            'useTLS' => true
         ],
     ],
-]; 
+];
