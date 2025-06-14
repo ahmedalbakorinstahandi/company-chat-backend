@@ -65,12 +65,12 @@ class StoryController extends Controller
 
         $story->load(['user', 'views']);
 
-        // // Broadcast to Pusher
-        // $this->pusher->trigger(
-        //     'presence-chat.' . $request->user()->company_id,
-        //     'story.new',
-        //     $story
-        // );
+        // Broadcast to Pusher
+        $this->pusher->trigger(
+            'presence-chat.' . $request->user()->company_id,
+            'story.new',
+            $story
+        );
 
         return ResponseService::response([
             'status' => 201,
@@ -79,8 +79,15 @@ class StoryController extends Controller
         ]);
     }
 
-    public function show(Request $request, Story $story)
+    public function show($id)
     {
+
+        $story = Story::find($id);
+
+        if (!$story) {
+            MessageService::abort(404, 'Story not found');
+        }
+
         $story->load(['user', 'views']);
 
         return ResponseService::response([
@@ -89,8 +96,14 @@ class StoryController extends Controller
         ]);
     }
 
-    public function view(Request $request, Story $story)
+    public function view(Request $request, $id)
     {
+        $story = Story::find($id);
+
+        if (!$story) {
+            MessageService::abort(404, 'Story not found');
+        }
+
         $view = StoryView::updateOrCreate(
             [
                 'story_id' => $story->id,
@@ -118,9 +131,17 @@ class StoryController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, Story $story)
+    public function destroy($id)
     {
-        if ($story->user_id !== $request->user()->id) {
+        $story = Story::find($id);
+
+        if (!$story) {
+            MessageService::abort(404, 'Story not found');
+        }
+
+        $user = User::auth();
+
+        if (!$user || $story->user_id !== $user->id) {
             MessageService::abort(403, 'Unauthorized');
         }
 
