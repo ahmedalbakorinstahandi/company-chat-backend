@@ -21,6 +21,7 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
             'phone_number' => 'required|string|max:15',
             'role' => 'required|in:manager,employee',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         $user = User::create([
@@ -30,8 +31,11 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'phone_number' => $request->phone_number,
             'role' => $request->role,
-            'avatar' => 'default-avatar.png',
         ]);
+
+        if ($request->hasFile('avatar')) {
+            $user->addMediaFromRequest('avatar')->toMediaCollection('avatar');
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
