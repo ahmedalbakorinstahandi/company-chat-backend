@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +25,15 @@ class AuthController extends Controller
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
+        $avatar = ImageService::storeImage($request->file('avatar'), 'avatars');
+
+        // $table->boolean('is_verified')->default(false);
+        // $table->string('otp', 10)->nullable();
+        // $table->timestamp('otp_expire_at')->nullable();
+
+        $otp = rand(100000, 999999);
+        $otp_expire_at = now()->addMinutes(5);
+
         $user = User::create([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
@@ -31,16 +41,16 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'phone_number' => $request->phone_number,
             'role' => $request->role,
-            'avatar' => 'default-avatar.png',
+            'avatar' => $avatar,
+            'otp' => $otp,
+            'otp_expire_at' => $otp_expire_at,
         ]);
 
-        if ($request->hasFile('avatar')) {
-            $user->addMediaFromRequest('avatar')->toMediaCollection('avatar');
-        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
+            'success' => true,
             'message' => 'User registered successfully',
             'user' => $user,
             'token' => $token,
@@ -76,6 +86,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
+            'success' => true,
             'message' => 'Logged in successfully',
             'user' => $user,
             'token' => $token,
@@ -87,6 +98,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
+            'success' => true,
             'message' => 'Logged out successfully',
         ]);
     }
@@ -108,6 +120,7 @@ class AuthController extends Controller
         // TODO: Implement email sending
 
         return response()->json([
+            'success' => true,
             'message' => 'OTP sent successfully',
         ]);
     }
@@ -137,6 +150,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
+            'success' => true,
             'message' => 'OTP verified successfully',
         ]);
     }
@@ -167,6 +181,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
+            'success' => true,
             'message' => 'Password reset successfully',
         ]);
     }
@@ -174,6 +189,7 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json([
+            'success' => true,
             'user' => $request->user(),
         ]);
     }
