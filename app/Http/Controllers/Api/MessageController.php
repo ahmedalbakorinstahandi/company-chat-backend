@@ -8,6 +8,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Pusher\Pusher;
+use Illuminate\Support\Facades\DB;
+use Kreait\Firebase\Messaging\Notification;
+use Kreait\Firebase\Messaging\CloudMessage;
 
 class MessageController extends Controller
 {
@@ -71,19 +74,25 @@ class MessageController extends Controller
             $message
         );
 
-        // Send Firebase notification
-        $receiver = User::find($request->receiver_id);
-        if ($receiver && $receiver->device_token) {
+        // Send Firebase notification to all receiver's devices
+        $receiverDeviceTokens = DB::table('personal_access_tokens')
+            ->where('tokenable_id', $request->receiver_id)
+            ->whereNotNull('device_token')
+            ->pluck('device_token')
+            ->unique()
+            ->toArray();
+
+        if (!empty($receiverDeviceTokens)) {
             $notification = Notification::create(
                 'New Message',
                 $request->user()->full_name . ' sent you a message'
             );
 
-            $message = CloudMessage::withTarget('token', $receiver->device_token)
+            $messageData = CloudMessage::new()
                 ->withNotification($notification)
                 ->withData(['message_id' => $message->id]);
 
-            app('firebase.messaging')->send($message);
+            app('firebase.messaging')->sendMulticast($messageData, $receiverDeviceTokens);
         }
 
         return response()->json([
