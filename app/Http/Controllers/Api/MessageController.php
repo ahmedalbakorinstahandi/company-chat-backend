@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Message;
+use App\Models\MessageImage;
 use App\Models\User;
+use App\Services\ImageService;
 use App\Services\MessageService;
 use App\Services\PusherService;
 use App\Services\ResponseService;
@@ -52,12 +54,14 @@ class MessageController extends Controller
 
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
-                $message->addMedia($image)
-                    ->toMediaCollection('images');
+                $messageImage = MessageImage::create([
+                    'message_id' => $message->id,
+                    'path' => ImageService::storeImage($image, 'messages'),
+                ]);
             }
         }
 
-        $message->load(['sender', 'receiver']);
+        $message->load(['sender', 'receiver', 'messageImages']);
 
         $pusher = new PusherService();
         $pusher->sendMessage('private-user.' . $request->receiver_id, 'message.new', $message);

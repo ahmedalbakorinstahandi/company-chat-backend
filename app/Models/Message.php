@@ -52,4 +52,10 @@ class Message extends Model implements HasMedia
         $this->addMediaCollection('images')
             ->useDisk('public');
     }
+
+    // message_images
+    public function messageImages()
+    {
+        return $this->hasMany(MessageImage::class, 'message_id');
+    }
 } 
