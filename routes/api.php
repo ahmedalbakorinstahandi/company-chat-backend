@@ -32,7 +32,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
 
     // Company routes
-    Route::apiResource('companies', CompanyController::class);
+    // Route::apiResource('companies', CompanyController::class);
+    Route::get('companies', [CompanyController::class, 'index']);
+    Route::get('companies/{id}', [CompanyController::class, 'show']);
+    Route::post('companies', [CompanyController::class, 'store']);
+    Route::put('companies/{id}', [CompanyController::class, 'update']);
+    Route::delete('companies/{id}', [CompanyController::class, 'destroy']);
     Route::post('companies/{company}/employees', [CompanyController::class, 'addEmployee']);
     Route::delete('companies/{company}/employees', [CompanyController::class, 'removeEmployee']);
 
@@ -43,6 +48,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('messages/{message}', [MessageController::class, 'destroy']);
 
     // Story routes
-    Route::apiResource('stories', StoryController::class);
-    Route::post('stories/{story}/view', [StoryController::class, 'view']);
+    // Route::apiResource('stories', StoryController::class);
+    Route::get('stories', [StoryController::class, 'index']);
+    Route::get('stories/{id}', [StoryController::class, 'show']);
+    Route::post('stories', [StoryController::class, 'store']);
+    Route::delete('stories/{id}', [StoryController::class, 'destroy']);
+    Route::post('stories/{id}/view', [StoryController::class, 'view']);
 });
