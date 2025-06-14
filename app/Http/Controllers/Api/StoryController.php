@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Story;
 use App\Models\StoryView;
 use App\Models\User;
+use App\Services\MessageService;
+use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use Pusher\Pusher;
 
@@ -32,8 +34,10 @@ class StoryController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return response()->json([
-            'stories' => $stories,
+        return ResponseService::response([
+            'status' => 200,
+            'data' => $stories,
+            'meta' => true,
         ]);
     }
 
@@ -63,18 +67,20 @@ class StoryController extends Controller
             $story
         );
 
-        return response()->json([
+        return ResponseService::response([
+            'status' => 201,
             'message' => 'Story created successfully',
             'data' => $story,
-        ], 201);
+        ]);
     }
 
     public function show(Request $request, Story $story)
     {
         $story->load(['user', 'views']);
 
-        return response()->json([
-            'story' => $story,
+        return ResponseService::response([
+            'status' => 200,
+            'data' => $story,
         ]);
     }
 
@@ -100,7 +106,8 @@ class StoryController extends Controller
             ]
         );
 
-        return response()->json([
+        return ResponseService::response([
+            'status' => 200,
             'message' => 'Story viewed successfully',
             'data' => $view,
         ]);
@@ -109,15 +116,15 @@ class StoryController extends Controller
     public function destroy(Request $request, Story $story)
     {
         if ($story->user_id !== $request->user()->id) {
-            return response()->json([
-                'message' => 'Unauthorized',
-            ], 403);
+            MessageService::abort(403, 'Unauthorized');
         }
 
         $story->delete();
 
-        return response()->json([
+        return ResponseService::response([
+            'status' => 200,
             'message' => 'Story deleted successfully',
+            'data' => $story,
         ]);
     }
-} 
+}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\ImageService;
+use App\Services\MessageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -72,15 +73,11 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+            MessageService::abort(401, 'The provided credentials are incorrect.');
         }
 
         if (!$user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => ['Your account is inactive.'],
-            ]);
+            MessageService::abort(401, 'Your account is inactive.');
         }
 
         if ($request->device_token) {
@@ -142,9 +139,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$user) {
-            throw ValidationException::withMessages([
-                'otp' => ['Invalid or expired OTP.'],
-            ]);
+            MessageService::abort(401, 'Invalid or expired OTP.');
         }
 
         $user->update([
@@ -173,9 +168,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$user) {
-            throw ValidationException::withMessages([
-                'otp' => ['Invalid or expired OTP.'],
-            ]);
+            MessageService::abort(401, 'Invalid or expired OTP.');
         }
 
         $user->update([
