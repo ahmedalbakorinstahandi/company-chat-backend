@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Story;
 use App\Models\StoryView;
 use App\Models\User;
+use App\Services\ImageService;
 use App\Services\MessageService;
 use App\Services\ResponseService;
 use Illuminate\Http\Request;
@@ -44,28 +45,31 @@ class StoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'content' => 'nullable|string',
-            'image' => 'nullable|image|max:10240', // 10MB max
+            'content' => 'required_without:image|string',
+            'image' => 'required_without:content|image|max:10240', // 10MB max
         ]);
+
+
+
+        if ($request->hasFile('image')) {
+            $image = ImageService::storeImage($request->file('image'), 'stories');
+           
+        }
 
         $story = Story::create([
             'user_id' => $request->user()->id,
-            'content' => $request->content,
+            'content' => $request->content ?? null,
+            'image' => $image ?? null,
         ]);
-
-        if ($request->hasFile('image')) {
-            $story->addMedia($request->file('image'))
-                ->toMediaCollection('image');
-        }
 
         $story->load(['user', 'views']);
 
-        // Broadcast to Pusher
-        $this->pusher->trigger(
-            'presence-chat.' . $request->user()->company_id,
-            'story.new',
-            $story
-        );
+        // // Broadcast to Pusher
+        // $this->pusher->trigger(
+        //     'presence-chat.' . $request->user()->company_id,
+        //     'story.new',
+        //     $story
+        // );
 
         return ResponseService::response([
             'status' => 201,
