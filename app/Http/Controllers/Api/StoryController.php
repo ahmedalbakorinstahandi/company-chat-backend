@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Story;
 use App\Models\StoryView;
 use App\Models\User;
-use App\Services\Helper\PusherService;
+use App\Services\PusherService;
 use App\Services\ImageService;
 use App\Services\MessageService;
 use App\Services\ResponseService;
