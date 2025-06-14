@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\User;
+use App\Services\MessageService;
+use App\Services\ResponseService;
+use Google\Rpc\Context\AttributeContext\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Pusher\Pusher;
@@ -39,8 +42,10 @@ class MessageController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return response()->json([
-            'messages' => $messages,
+        return ResponseService::response([
+            'status' => 200,
+            'data' => $messages,
+            'meta' => true,
         ]);
     }
 
@@ -48,14 +53,14 @@ class MessageController extends Controller
     {
         $request->validate([
             'receiver_id' => 'required|exists:users,id',
-            'content' => 'nullable|string',
-            'images.*' => 'nullable|image|max:10240', // 10MB max
+            'content' => 'required_without:images|string',
+            'images.*' => 'required_without:content|image|max:10240', // 10MB max
         ]);
 
         $message = Message::create([
             'sender_id' => $request->user()->id,
             'receiver_id' => $request->receiver_id,
-            'content' => $request->content,
+            'content' => $request->content ?? null,
         ]);
 
         if ($request->hasFile('images')) {
@@ -95,18 +100,25 @@ class MessageController extends Controller
             app('firebase.messaging')->sendMulticast($messageData, $receiverDeviceTokens);
         }
 
-        return response()->json([
+        return ResponseService::response([
+            'status' => 201,
             'message' => 'Message sent successfully',
             'data' => $message,
-        ], 201);
+        ]);
     }
 
-    public function markAsRead(Request $request, Message $message)
+    public function markAsRead(Request $request, $id)
     {
-        if ($message->receiver_id !== $request->user()->id) {
-            return response()->json([
-                'message' => 'Unauthorized',
-            ], 403);
+        $message = Message::find($id);
+
+        if (!$message) {
+            MessageService::abort(404, 'Message not found');
+        }
+
+        $user = User::auth();
+
+        if (!$user || $message->receiver_id !== $user->id) {
+            MessageService::abort(403, 'Unauthorized');
         }
 
         $message->update(['read_at' => now()]);
@@ -118,24 +130,32 @@ class MessageController extends Controller
             $message
         );
 
-        return response()->json([
+        return ResponseService::response([
+            'status' => 200,
             'message' => 'Message marked as read',
             'data' => $message,
         ]);
     }
 
-    public function destroy(Request $request, Message $message)
+    public function destroy($id)
     {
-        if ($message->sender_id !== $request->user()->id) {
-            return response()->json([
-                'message' => 'Unauthorized',
-            ], 403);
+        $message = Message::find($id);
+
+        if (!$message) {
+            MessageService::abort(404, 'Message not found');
+        }
+
+        $user = User::auth();
+
+        if (!$user || $message->sender_id !== $user->id) {
+            MessageService::abort(403, 'Unauthorized');
         }
 
         $message->delete();
 
-        return response()->json([
+        return ResponseService::response([
+            'status' => 200,
             'message' => 'Message deleted successfully',
         ]);
     }
-} 
+}
