@@ -53,11 +53,12 @@ class StoryController extends Controller
 
         if ($request->hasFile('image')) {
             $image = ImageService::storeImage($request->file('image'), 'stories');
-           
         }
 
+        $user = User::auth();
+
         $story = Story::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $user->id,
             'content' => $request->content ?? null,
             'image' => $image ?? null,
         ]);
