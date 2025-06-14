@@ -27,7 +27,7 @@ class Story extends Model implements HasMedia
 
     public function getImageUrlAttribute()
     {
-        return asset('storage/' . $this->getFirstMediaUrl('image')) ?: null;
+        return asset('storage/' . $this->image) ?: null;
     }
 
     public function getViewsCountAttribute()
