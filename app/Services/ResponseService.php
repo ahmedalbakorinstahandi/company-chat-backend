@@ -50,7 +50,7 @@ class ResponseService
                             ? $params['resource']::collection($value)
                             : new $params['resource']($value);
                     } else {
-                        $response['data'] = $value;
+                        $response['data'] = $value->items();
                     }
                     break;
 
