@@ -75,7 +75,7 @@ class User extends Authenticatable implements HasMedia
         if ($this->avatar == 'none') {
             return "https://ui-avatars.com/api/?name={$this->first_name}&size=256&background=random&length=1";
         }
-        return $this->getFirstMediaUrl('avatar') ?: asset('images/default-avatar.png');
+        return asset('storage/' . $this->getFirstMediaUrl('avatar')) ?: asset('images/default-avatar.png');
     }
 
     public function getFullNameAttribute()

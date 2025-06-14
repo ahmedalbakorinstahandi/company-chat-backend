@@ -23,9 +23,11 @@ class Story extends Model implements HasMedia
         'favorites_count',
     ];
 
+    // add url to image
+
     public function getImageUrlAttribute()
     {
-        return $this->getFirstMediaUrl('image') ?: null;
+        return asset('storage/' . $this->getFirstMediaUrl('image')) ?: null;
     }
 
     public function getViewsCountAttribute()
@@ -54,4 +56,4 @@ class Story extends Model implements HasMedia
             ->singleFile()
             ->useDisk('public');
     }
-} 
+}
