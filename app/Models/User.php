@@ -9,13 +9,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\MediaLibrary\InteractsWithMedia;
 
-class User extends Authenticatable implements HasMedia
+class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, InteractsWithMedia;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -75,7 +73,7 @@ class User extends Authenticatable implements HasMedia
         if ($this->avatar == 'none') {
             return "https://ui-avatars.com/api/?name={$this->first_name}&size=256&background=random&length=1";
         }
-        return asset('storage/' . $this->getFirstMediaUrl('avatar')) ?: asset('images/default-avatar.png');
+        return asset('storage/' . $this->avatar) ?: asset('images/default-avatar.png');
     }
 
     public function getFullNameAttribute()
@@ -110,12 +108,7 @@ class User extends Authenticatable implements HasMedia
         return $this->hasMany(StoryView::class);
     }
 
-    public function registerMediaCollections(): void
-    {
-        $this->addMediaCollection('avatar')
-            ->singleFile()
-            ->useDisk('public');
-    }
+
 
 
     public static function auth()

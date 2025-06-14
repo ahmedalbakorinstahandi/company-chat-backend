@@ -12,4 +12,9 @@ class MessageImage extends Model
     {
         return $this->belongsTo(Message::class);
     }
+
+    public function getUrlAttribute()
+    {
+        return asset('storage/' . $this->path);
+    }
 }
