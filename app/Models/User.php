@@ -69,15 +69,21 @@ class User extends Authenticatable implements HasMedia
         'avatar_url',
     ];
 
+    // if avatar is none, return letter avatar image ex https://ui-avatars.com/api/?name=ahmed&size=256&background=random
+    public function getAvatarUrlAttribute()
+    {
+        if ($this->avatar == 'none') {
+            return "https://ui-avatars.com/api/?name={$this->first_name}&size=256&background=random&length=1";
+        }
+        return $this->getFirstMediaUrl('avatar') ?: asset('images/default-avatar.png');
+    }
+
     public function getFullNameAttribute()
     {
         return "{$this->first_name} {$this->last_name}";
     }
 
-    public function getAvatarUrlAttribute()
-    {
-        return $this->getFirstMediaUrl('avatar') ?: asset('images/default-avatar.png');
-    }
+
 
     public function company()
     {

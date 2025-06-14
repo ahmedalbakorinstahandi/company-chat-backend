@@ -25,7 +25,11 @@ class AuthController extends Controller
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $avatar = ImageService::storeImage($request->file('avatar'), 'avatars');
+        if ($request->hasFile('avatar')) {
+            $avatar = ImageService::storeImage($request->file('avatar'), 'avatars');
+        } else {
+            $avatar = 'none';
+        }
 
         // $table->boolean('is_verified')->default(false);
         // $table->string('otp', 10)->nullable();
@@ -193,4 +197,4 @@ class AuthController extends Controller
             'user' => $request->user(),
         ]);
     }
-} 
+}
