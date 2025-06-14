@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Story;
 use App\Models\StoryView;
 use App\Models\User;
+use App\Services\Helper\PusherService;
 use App\Services\ImageService;
 use App\Services\MessageService;
 use App\Services\ResponseService;
@@ -65,12 +66,8 @@ class StoryController extends Controller
 
         $story->load(['user', 'views']);
 
-        // Broadcast to Pusher
-        $this->pusher->trigger(
-            'presence-chat.' . $request->user()->company_id,
-            'story.new',
-            $story
-        );
+        $pusher = new PusherService();
+        $pusher->sendMessage('story', 'new', $story);
 
         return ResponseService::response([
             'status' => 201,
