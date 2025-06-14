@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\MediaLibrary\HasMedia;
@@ -14,7 +15,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, InteractsWithMedia;
+    use HasApiTokens, HasFactory, Notifiable, InteractsWithMedia;
 
     /**
      * The attributes that are mass assignable.
@@ -108,5 +109,16 @@ class User extends Authenticatable implements HasMedia
         $this->addMediaCollection('avatar')
             ->singleFile()
             ->useDisk('public');
+    }
+
+
+    public static function auth()
+    {
+        if (Auth::guard('sanctum')->check()) {
+            $user =  Auth::guard('sanctum')->user();
+            return User::where('id', $user->id)->first();
+        }
+
+        return null;
     }
 }
