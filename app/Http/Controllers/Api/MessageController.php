@@ -20,14 +20,17 @@ class MessageController extends Controller
 
     public function index(Request $request)
     {
-        $messages = Message::where(function ($query) use ($request) {
-            $query->where('sender_id', $request->user()->id)
+
+        $user = User::auth();
+
+        $messages = Message::where(function ($query) use ($request, $user) {
+            $query->where('sender_id', $user->id)
                 ->where('receiver_id', $request->receiver_id);
-        })->orWhere(function ($query) use ($request) {
+        })->orWhere(function ($query) use ($request, $user) {
             $query->where('sender_id', $request->receiver_id)
-                ->where('receiver_id', $request->user()->id);
+                ->where('receiver_id', $user->id);
         })
-            ->with(['sender', 'receiver'])
+            ->with(['sender', 'receiver', 'messageImages'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
