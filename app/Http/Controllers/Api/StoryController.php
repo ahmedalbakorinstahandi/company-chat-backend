@@ -15,18 +15,6 @@ use Pusher\Pusher;
 
 class StoryController extends Controller
 {
-    protected $pusher;
-
-    public function __construct()
-    {
-        $this->pusher = new Pusher(
-            config('broadcasting.connections.pusher.key'),
-            config('broadcasting.connections.pusher.secret'),
-            config('broadcasting.connections.pusher.app_id'),
-            config('broadcasting.connections.pusher.options')
-        );
-    }
-
     public function index(Request $request)
     {
         $stories = Story::with(['user', 'views'])
@@ -111,15 +99,9 @@ class StoryController extends Controller
             ]
         );
 
-        // Broadcast to Pusher
-        $this->pusher->trigger(
-            'private-user.' . $story->user_id,
-            'story.view',
-            [
-                'story' => $story,
-                'view' => $view,
-            ]
-        );
+
+        $pusher = new PusherService();
+        $pusher->sendMessage('private-user.' . $story->user_id, 'story.view', [$story, $view]);
 
         return ResponseService::response([
             'status' => 200,
