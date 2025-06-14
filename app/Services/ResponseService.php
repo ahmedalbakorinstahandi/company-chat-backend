@@ -50,7 +50,9 @@ class ResponseService
                             ? $params['resource']::collection($value)
                             : new $params['resource']($value);
                     } else {
-                        $response['data'] = $value->items();
+                        $response['data'] = self::isCollectionLike($value)
+                            ? $value->items()
+                            : $value;
                     }
                     break;
 
