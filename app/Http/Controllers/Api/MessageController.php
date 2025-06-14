@@ -6,28 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\MessageService;
+use App\Services\PusherService;
 use App\Services\ResponseService;
-use Google\Rpc\Context\AttributeContext\Response;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Pusher\Pusher;
 use Illuminate\Support\Facades\DB;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Firebase\Messaging\CloudMessage;
 
 class MessageController extends Controller
 {
-    protected $pusher;
-
-    public function __construct()
-    {
-        $this->pusher = new Pusher(
-            config('broadcasting.connections.pusher.key'),
-            config('broadcasting.connections.pusher.secret'),
-            config('broadcasting.connections.pusher.app_id'),
-            config('broadcasting.connections.pusher.options')
-        );
-    }
 
     public function index(Request $request)
     {
@@ -72,12 +59,8 @@ class MessageController extends Controller
 
         $message->load(['sender', 'receiver']);
 
-        // Broadcast to Pusher
-        $this->pusher->trigger(
-            'private-user.' . $request->receiver_id,
-            'message.new',
-            $message
-        );
+        $pusher = new PusherService();
+        $pusher->sendMessage('private-user.' . $request->receiver_id, 'message.new', $message);
 
         // Send Firebase notification to all receiver's devices
         $receiverDeviceTokens = DB::table('personal_access_tokens')
@@ -123,12 +106,8 @@ class MessageController extends Controller
 
         $message->update(['read_at' => now()]);
 
-        // Broadcast to Pusher
-        $this->pusher->trigger(
-            'private-user.' . $message->sender_id,
-            'message.read',
-            $message
-        );
+        $pusher = new PusherService();
+        $pusher->sendMessage('private-user.' . $message->sender_id, 'message.read', $message);
 
         return ResponseService::response([
             'status' => 200,
