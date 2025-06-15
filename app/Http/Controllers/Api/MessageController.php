@@ -157,7 +157,7 @@ class MessageController extends Controller
          ->orWhereHas('receivedMessages', function ($query) use ($user) {
             $query->where('receiver_id', $user->id); 
          })
-         ->get();
+         ->paginate(20);
 
          return ResponseService::response([
             'status' => 200,
