@@ -41,6 +41,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('companies/{company}/employees', [CompanyController::class, 'addEmployee']);
     Route::delete('companies/{company}/employees', [CompanyController::class, 'removeEmployee']);
 
+
+
+    // get user chats
+    Route::get('user-chats', [MessageController::class, 'getUserChats']);
+
     // Message routes
     Route::get('messages', [MessageController::class, 'index']);
     Route::post('messages', [MessageController::class, 'store']);

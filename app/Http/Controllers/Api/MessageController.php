@@ -144,4 +144,23 @@ class MessageController extends Controller
             'message' => 'Message deleted successfully',
         ]);
     }
+
+
+    // get chats
+    public function getUserChats(Request $request){
+        $user = User::auth();
+
+         // get all users that have messages with the user
+         $users = User::whereHas('messages', function ($query) use ($user) {
+            $query->where('sender_id', $user->id)
+                ->orWhere('receiver_id', $user->id);
+         })
+         ->get();
+
+         return ResponseService::response([
+            'status' => 200,
+            'data' => $users,
+            'meta' => true,
+         ]);
+    }
 }
