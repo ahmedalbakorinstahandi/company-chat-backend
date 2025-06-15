@@ -17,16 +17,24 @@ class StoryController extends Controller
 {
     public function index(Request $request)
     {
-        $stories = Story::with(['user', 'views'])
-            ->whereHas('user', function ($query) {
-                $query->where('is_active', true);
-            })
-            ->orderBy('created_at', 'desc')
+        $users = User::where('is_active', true)
+            ->whereHas('stories')
+            ->with(['stories' => function($query) {
+                $query->with('views')
+                     ->orderBy('created_at', 'desc');
+            }])
             ->paginate(20);
+
+        // Transform each user to include their stories array starting from 1
+        $users->getCollection()->transform(function($user) {
+            $user->stories_array = $user->stories->values();
+            unset($user->stories);
+            return $user;
+        });
 
         return ResponseService::response([
             'status' => 200,
-            'data' => $stories,
+            'data' => $users,
             'meta' => true,
         ]);
     }
