@@ -151,9 +151,11 @@ class MessageController extends Controller
         $user = User::auth();
 
          // get all users that have messages with the user
-         $users = User::whereHas('messages', function ($query) use ($user) {
-            $query->where('sender_id', $user->id)
-                ->orWhere('receiver_id', $user->id);
+         $users = User::whereHas('sentMessages', function ($query) use ($user) {
+            $query->where('sender_id', $user->id);
+         })
+         ->orWhereHas('receivedMessages', function ($query) use ($user) {
+            $query->where('receiver_id', $user->id); 
          })
          ->get();
 
