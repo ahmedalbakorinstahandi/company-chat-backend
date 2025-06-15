@@ -150,19 +150,42 @@ class MessageController extends Controller
     public function getUserChats(Request $request){
         $user = User::auth();
 
-         // get all users that have messages with the user
-         $users = User::whereHas('sentMessages', function ($query) use ($user) {
+        // get all users that have messages with the user
+        $chats = User::whereHas('sentMessages', function ($query) use ($user) {
             $query->where('sender_id', $user->id);
-         })
-         ->orWhereHas('receivedMessages', function ($query) use ($user) {
-            $query->where('receiver_id', $user->id); 
-         })
-         ->paginate(20);
+        })
+        ->orWhereHas('receivedMessages', function ($query) use ($user) {
+            $query->where('receiver_id', $user->id);
+        })
+        ->withCount(['receivedMessages as unread_messages_count' => function($query) use ($user) {
+            $query->whereNull('read_at')
+                 ->where('receiver_id', $user->id);
+        }])
+        ->withExists(['sentMessages as has_messages'])
+        ->with(['receivedMessages' => function($query) {
+            $query->latest()->take(1);
+        }, 'sentMessages' => function($query) {
+            $query->latest()->take(1); 
+        }])
+        ->paginate(20);
 
-         return ResponseService::response([
+        // Add last message to each chat
+        $chats->getCollection()->transform(function($chat) {
+            $lastReceivedMessage = $chat->receivedMessages->first();
+            $lastSentMessage = $chat->sentMessages->first();
+            
+            $chat->last_message = $lastReceivedMessage && $lastSentMessage 
+                ? ($lastReceivedMessage->created_at > $lastSentMessage->created_at ? $lastReceivedMessage : $lastSentMessage)
+                : ($lastReceivedMessage ?? $lastSentMessage);
+
+            unset($chat->receivedMessages, $chat->sentMessages);
+            return $chat;
+        });
+
+        return ResponseService::response([
             'status' => 200,
-            'data' => $users,
+            'data' => $chats,
             'meta' => true,
-         ]);
+        ]);
     }
 }
