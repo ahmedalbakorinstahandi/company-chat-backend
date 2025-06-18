@@ -10,19 +10,13 @@ class PusherService
 
     public function __construct()
     {
-        $config = config('services.pusher');
-
-        if (!$config['key'] || !$config['secret'] || !$config['app_id']) {
-            throw new \Exception('Missing Pusher configuration');
-        }
-
         $this->pusher = new Pusher(
-            $config['key'],
-            $config['secret'],
-            $config['app_id'],
+            env('PUSHER_APP_KEY'),
+            env('PUSHER_APP_SECRET'), 
+            env('PUSHER_APP_ID'),
             [
-                'cluster' => $config['cluster'],
-                'useTLS' => $config['useTLS'],
+                'cluster' => env('PUSHER_APP_CLUSTER'),
+                'useTLS' => true,
             ]
         );
     }
