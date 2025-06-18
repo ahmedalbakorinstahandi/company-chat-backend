@@ -134,7 +134,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)
-            ->where('otp', $request->otp)
+            // ->where('otp', $request->otp)
             ->where('otp_expire_at', '>', now())
             ->first();
 
