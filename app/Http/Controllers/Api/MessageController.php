@@ -67,7 +67,7 @@ class MessageController extends Controller
         $message->load(['sender', 'receiver', 'messageImages']);
 
         $pusher = new PusherService();
-        $pusher->sendMessage('private-user.' . $request->receiver_id, 'message.new', $message);
+        $pusher->sendMessage('user.' . $request->receiver_id, 'message.new', $message);
 
         // Send Firebase notification to all receiver's devices
         $receiverDeviceTokens = DB::table('personal_access_tokens')
