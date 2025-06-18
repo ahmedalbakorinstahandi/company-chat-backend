@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\StoryController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,4 +60,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('stories', [StoryController::class, 'store']);
     Route::delete('stories/{id}', [StoryController::class, 'destroy']);
     Route::post('stories/{id}/view', [StoryController::class, 'view']);
+});
+
+// Test Pusher route
+Route::post('/test-pusher', function (Request $request) {
+    $pusher = new \App\Services\PusherService();
+    $result = $pusher->sendMessage('test-channel', 'test-event', [
+        'message' => 'Test message from Laravel',
+        'timestamp' => now()->toISOString()
+    ]);
+    
+    return response()->json([
+        'success' => $result !== false,
+        'message' => $result !== false ? 'Pusher test successful' : 'Pusher test failed',
+        'result' => $result
+    ]);
 });

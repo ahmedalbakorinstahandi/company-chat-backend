@@ -67,10 +67,25 @@ class MessageController extends Controller
 
         $message->load(['sender', 'receiver', 'messageImages']);
 
+        // Send Pusher notification
         $pusher = new PusherService();
-        $pusher->sendMessage('user.' . $request->receiver_id, 'message.new', $message);
+        $pusherResult = $pusher->sendMessage('private-user.' . $request->receiver_id, 'message.new', [
+            'message' => $message,
+            'sender' => $message->sender,
+            'timestamp' => now()->toISOString()
+        ]);
 
-        Log::info('Message sent to user.' . $request->receiver_id);
+        if ($pusherResult === false) {
+            Log::warning('Failed to send Pusher notification for message', [
+                'message_id' => $message->id,
+                'receiver_id' => $request->receiver_id
+            ]);
+        } else {
+            Log::info('Pusher notification sent successfully', [
+                'message_id' => $message->id,
+                'receiver_id' => $request->receiver_id
+            ]);
+        }
 
         // Send Firebase notification to all receiver's devices
         $receiverDeviceTokens = DB::table('personal_access_tokens')
@@ -81,16 +96,28 @@ class MessageController extends Controller
             ->toArray();
 
         if (!empty($receiverDeviceTokens)) {
-            $notification = Notification::create(
-                'New Message',
-                $request->user()->full_name . ' sent you a message'
-            );
+            try {
+                $notification = Notification::create(
+                    'New Message',
+                    $request->user()->full_name . ' sent you a message'
+                );
 
-            $messageData = CloudMessage::new()
-                ->withNotification($notification)
-                ->withData(['message_id' => $message->id]);
+                $messageData = CloudMessage::new()
+                    ->withNotification($notification)
+                    ->withData(['message_id' => $message->id]);
 
-            app('firebase.messaging')->sendMulticast($messageData, $receiverDeviceTokens);
+                app('firebase.messaging')->sendMulticast($messageData, $receiverDeviceTokens);
+                
+                Log::info('Firebase notification sent successfully', [
+                    'message_id' => $message->id,
+                    'device_tokens_count' => count($receiverDeviceTokens)
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to send Firebase notification', [
+                    'message_id' => $message->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
         return ResponseService::response([
@@ -116,8 +143,20 @@ class MessageController extends Controller
 
         $message->update(['read_at' => now()]);
 
+        // Send Pusher notification
         $pusher = new PusherService();
-        $pusher->sendMessage('private-user.' . $message->sender_id, 'message.read', $message);
+        $pusherResult = $pusher->sendMessage('private-user.' . $message->sender_id, 'message.read', [
+            'message' => $message,
+            'read_by' => $user,
+            'timestamp' => now()->toISOString()
+        ]);
+
+        if ($pusherResult === false) {
+            Log::warning('Failed to send Pusher notification for message read', [
+                'message_id' => $message->id,
+                'sender_id' => $message->sender_id
+            ]);
+        }
 
         return ResponseService::response([
             'status' => 200,

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Pusher\Pusher;
+use Illuminate\Support\Facades\Log;
 
 class PusherService
 {
@@ -11,12 +12,15 @@ class PusherService
     public function __construct()
     {
         $this->pusher = new Pusher(
-            'aad0418787f85ad833f7',
-            'd82e595a10197a5be4a4', 
-            '2007760',
+            config('services.pusher.key'),
+            config('services.pusher.secret'),
+            config('services.pusher.app_id'),
             [
-                'cluster' => 'us3',
-                'useTLS' => true,
+                'cluster' => config('services.pusher.cluster'),
+                'useTLS' => config('services.pusher.useTLS', true),
+                'host' => config('services.pusher.host'),
+                'port' => config('services.pusher.port', 443),
+                'scheme' => config('services.pusher.scheme', 'https'),
             ]
         );
     }
@@ -31,6 +35,26 @@ class PusherService
 
     public function sendMessage($channel, $event, $data)
     {
-        $this->pusher->trigger($channel, $event, $data);
+        try {
+            $result = $this->pusher->trigger($channel, $event, $data);
+            Log::info('Pusher message sent successfully', [
+                'channel' => $channel,
+                'event' => $event,
+                'result' => $result
+            ]);
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Pusher message failed to send', [
+                'channel' => $channel,
+                'event' => $event,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    public function getPusher()
+    {
+        return $this->pusher;
     }
 }

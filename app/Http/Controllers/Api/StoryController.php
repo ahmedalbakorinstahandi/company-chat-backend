@@ -12,6 +12,7 @@ use App\Services\MessageService;
 use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use Pusher\Pusher;
+use Illuminate\Support\Facades\Log;
 
 class StoryController extends Controller
 {
@@ -46,8 +47,6 @@ class StoryController extends Controller
             'image' => 'required_without:content|image|max:10240', // 10MB max
         ]);
 
-
-
         if ($request->hasFile('image')) {
             $image = ImageService::storeImage($request->file('image'), 'stories');
         }
@@ -62,8 +61,25 @@ class StoryController extends Controller
 
         $story->load(['user', 'views']);
 
+        // Send Pusher notification
         $pusher = new PusherService();
-        $pusher->sendMessage('story', 'new', $story);
+        $pusherResult = $pusher->sendMessage('stories', 'story.new', [
+            'story' => $story,
+            'user' => $story->user,
+            'timestamp' => now()->toISOString()
+        ]);
+
+        if ($pusherResult === false) {
+            Log::warning('Failed to send Pusher notification for new story', [
+                'story_id' => $story->id,
+                'user_id' => $user->id
+            ]);
+        } else {
+            Log::info('Pusher notification sent successfully for new story', [
+                'story_id' => $story->id,
+                'user_id' => $user->id
+            ]);
+        }
 
         return ResponseService::response([
             'status' => 201,
@@ -107,9 +123,21 @@ class StoryController extends Controller
             ]
         );
 
-
+        // Send Pusher notification
         $pusher = new PusherService();
-        $pusher->sendMessage('private-user.' . $story->user_id, 'story.view', [$story, $view]);
+        $pusherResult = $pusher->sendMessage('private-user.' . $story->user_id, 'story.view', [
+            'story' => $story,
+            'view' => $view,
+            'viewer' => $request->user(),
+            'timestamp' => now()->toISOString()
+        ]);
+
+        if ($pusherResult === false) {
+            Log::warning('Failed to send Pusher notification for story view', [
+                'story_id' => $story->id,
+                'viewer_id' => $request->user()->id
+            ]);
+        }
 
         return ResponseService::response([
             'status' => 200,
