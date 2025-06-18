@@ -12,6 +12,7 @@ use App\Services\PusherService;
 use App\Services\ResponseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Firebase\Messaging\CloudMessage;
 
@@ -68,6 +69,8 @@ class MessageController extends Controller
 
         $pusher = new PusherService();
         $pusher->sendMessage('user.' . $request->receiver_id, 'message.new', $message);
+
+        Log::info('Message sent to user.' . $request->receiver_id);
 
         // Send Firebase notification to all receiver's devices
         $receiverDeviceTokens = DB::table('personal_access_tokens')
