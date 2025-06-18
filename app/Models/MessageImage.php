@@ -8,6 +8,8 @@ class MessageImage extends Model
 {
     protected $fillable = ['message_id', 'path'];
 
+    protected $appends = ['url'];
+
     public function message()
     {
         return $this->belongsTo(Message::class);

@@ -21,20 +21,6 @@ class Message extends Model
         'read_at' => 'datetime',
     ];
 
-    protected $appends = [
-        'images',
-    ];
-
-    public function getImagesAttribute()
-    {
-        return $this->messageImages->map(function ($messageImage) {
-            return [
-                'id' => $messageImage->id,
-                'url' => $messageImage->url,
-            ];
-        });
-    }
-
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');
