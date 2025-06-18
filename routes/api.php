@@ -62,6 +62,84 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('stories/{id}/view', [StoryController::class, 'view']);
 });
 
+// Multi-cluster Pusher test
+Route::post('/test-pusher-clusters', function (Request $request) {
+    $clusters = ['us1', 'us2', 'us3', 'eu', 'ap1', 'ap2', 'ap3'];
+    $results = [];
+    
+    foreach ($clusters as $cluster) {
+        try {
+            $pusher = new \Pusher\Pusher(
+                'aad0418787f85ad833f7',
+                'd82e595a10197a5be4a4',
+                '2007760',
+                [
+                    'cluster' => $cluster,
+                    'useTLS' => true,
+                ]
+            );
+            
+            $result = $pusher->trigger('test-channel', 'test-event', [
+                'message' => "Test from cluster {$cluster}",
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            $results[$cluster] = [
+                'success' => true,
+                'result' => $result
+            ];
+            
+        } catch (Exception $e) {
+            $results[$cluster] = [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Multi-cluster test results',
+        'results' => $results
+    ]);
+});
+
+// DNS test route
+Route::get('/test-dns', function (Request $request) {
+    $hosts = [
+        'api-us3.pusherapp.com',
+        'api-us2.pusherapp.com',
+        'api-us1.pusherapp.com',
+        'google.com', // Test with a known working domain
+    ];
+    
+    $results = [];
+    
+    foreach ($hosts as $host) {
+        $ip = gethostbyname($host);
+        $results[$host] = [
+            'ip' => $ip,
+            'resolved' => $ip !== $host,
+            'ping' => false
+        ];
+        
+        // Try to ping the host
+        if ($ip !== $host) {
+            $connection = @fsockopen($host, 443, $errno, $errstr, 5);
+            $results[$host]['ping'] = $connection !== false;
+            if ($connection) {
+                fclose($connection);
+            }
+        }
+    }
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'DNS test results',
+        'results' => $results
+    ]);
+});
+
 // Direct Pusher test (bypasses config)
 Route::post('/test-pusher-direct', function (Request $request) {
     try {
