@@ -11,11 +11,11 @@ class PusherService
     public function __construct()
     {
         $this->pusher = new Pusher(
-            env('PUSHER_APP_KEY', 'aad0418787f85ad833f7'),
-            env('PUSHER_APP_SECRET', 'd82e595a10197a5be4a4'), 
-            env('PUSHER_APP_ID', '2007760'),
+            'aad0418787f85ad833f7',
+            'd82e595a10197a5be4a4', 
+            '2007760',
             [
-                'cluster' => env('PUSHER_APP_CLUSTER', 'us3'),
+                'cluster' => 'us3',
                 'useTLS' => true,
             ]
         );
