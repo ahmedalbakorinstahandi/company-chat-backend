@@ -11,14 +11,22 @@ class PusherService
 
     public function __construct()
     {
+        $cluster = config('services.pusher.cluster', 'us3');
+        $host = config('services.pusher.host');
+        
+        // If no host is specified, use the default Pusher host
+        if (empty($host)) {
+            $host = "api-{$cluster}.pusherapp.com";
+        }
+
         $this->pusher = new Pusher(
             config('services.pusher.key'),
             config('services.pusher.secret'),
             config('services.pusher.app_id'),
             [
-                'cluster' => config('services.pusher.cluster'),
+                'cluster' => $cluster,
                 'useTLS' => config('services.pusher.useTLS', true),
-                'host' => config('services.pusher.host'),
+                'host' => $host,
                 'port' => config('services.pusher.port', 443),
                 'scheme' => config('services.pusher.scheme', 'https'),
             ]

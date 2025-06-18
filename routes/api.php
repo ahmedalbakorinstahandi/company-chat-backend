@@ -64,6 +64,33 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Test Pusher route
 Route::post('/test-pusher', function (Request $request) {
+    // Check configuration
+    $config = [
+        'key' => config('services.pusher.key'),
+        'secret' => config('services.pusher.secret'),
+        'app_id' => config('services.pusher.app_id'),
+        'cluster' => config('services.pusher.cluster'),
+        'host' => config('services.pusher.host'),
+        'port' => config('services.pusher.port'),
+        'scheme' => config('services.pusher.scheme'),
+    ];
+    
+    // Check if any required config is missing
+    $missing = [];
+    foreach (['key', 'secret', 'app_id', 'cluster'] as $required) {
+        if (empty($config[$required])) {
+            $missing[] = $required;
+        }
+    }
+    
+    if (!empty($missing)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Missing Pusher configuration: ' . implode(', ', $missing),
+            'config' => $config
+        ]);
+    }
+    
     $pusher = new \App\Services\PusherService();
     $result = $pusher->sendMessage('test-channel', 'test-event', [
         'message' => 'Test message from Laravel',
@@ -73,6 +100,7 @@ Route::post('/test-pusher', function (Request $request) {
     return response()->json([
         'success' => $result !== false,
         'message' => $result !== false ? 'Pusher test successful' : 'Pusher test failed',
-        'result' => $result
+        'result' => $result,
+        'config' => $config
     ]);
 });
