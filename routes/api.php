@@ -62,6 +62,45 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('stories/{id}/view', [StoryController::class, 'view']);
 });
 
+// Direct Pusher test (bypasses config)
+Route::post('/test-pusher-direct', function (Request $request) {
+    try {
+        // Test with hardcoded values to see if credentials work
+        $pusher = new \Pusher\Pusher(
+            'aad0418787f85ad833f7',
+            'd82e595a10197a5be4a4',
+            '2007760',
+            [
+                'cluster' => 'us3',
+                'useTLS' => true,
+                'host' => 'api-us3.pusherapp.com',
+                'port' => 443,
+                'scheme' => 'https',
+            ]
+        );
+        
+        $result = $pusher->trigger('test-channel', 'test-event', [
+            'message' => 'Direct test message',
+            'timestamp' => now()->toISOString()
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Direct Pusher test successful',
+            'result' => $result
+        ]);
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Direct Pusher test failed',
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+    }
+});
+
 // Test Pusher route
 Route::post('/test-pusher', function (Request $request) {
     // Check configuration
@@ -91,7 +130,21 @@ Route::post('/test-pusher', function (Request $request) {
         ]);
     }
     
+    // Create PusherService to see the actual host being used
     $pusher = new \App\Services\PusherService();
+    $pusherInstance = $pusher->getPusher();
+    
+    // Get the actual configuration from the Pusher instance
+    $actualConfig = [
+        'key' => $config['key'],
+        'secret' => $config['secret'],
+        'app_id' => $config['app_id'],
+        'cluster' => $config['cluster'],
+        'host' => $pusherInstance->getSettings()['host'] ?? 'unknown',
+        'port' => $config['port'],
+        'scheme' => $config['scheme'],
+    ];
+    
     $result = $pusher->sendMessage('test-channel', 'test-event', [
         'message' => 'Test message from Laravel',
         'timestamp' => now()->toISOString()
@@ -101,6 +154,7 @@ Route::post('/test-pusher', function (Request $request) {
         'success' => $result !== false,
         'message' => $result !== false ? 'Pusher test successful' : 'Pusher test failed',
         'result' => $result,
-        'config' => $config
+        'config' => $config,
+        'actual_config' => $actualConfig
     ]);
 });
