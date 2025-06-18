@@ -236,3 +236,39 @@ Route::post('/test-pusher', function (Request $request) {
         'actual_config' => $actualConfig
     ]);
 });
+
+// Simple Pusher test (no custom host)
+Route::post('/test-pusher-simple', function (Request $request) {
+    try {
+        // Test with minimal configuration
+        $pusher = new \Pusher\Pusher(
+            'aad0418787f85ad833f7',
+            'd82e595a10197a5be4a4',
+            '2007760',
+            [
+                'cluster' => 'us3',
+                'useTLS' => true,
+            ]
+        );
+        
+        $result = $pusher->trigger('test-channel', 'test-event', [
+            'message' => 'Simple test message',
+            'timestamp' => now()->toISOString()
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Simple Pusher test successful',
+            'result' => $result
+        ]);
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Simple Pusher test failed',
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+    }
+});

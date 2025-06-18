@@ -12,12 +12,14 @@ class PusherService
     public function __construct()
     {
         $cluster = config('services.pusher.cluster', 'us3');
-        $host = config('services.pusher.host');
         
-        // If no host is specified, use the default Pusher host
-        if (empty($host)) {
-            $host = "api-{$cluster}.pusherapp.com";
-        }
+        // Log the configuration for debugging
+        Log::info('Pusher configuration', [
+            'key' => config('services.pusher.key'),
+            'secret' => config('services.pusher.secret'),
+            'app_id' => config('services.pusher.app_id'),
+            'cluster' => $cluster,
+        ]);
 
         $this->pusher = new Pusher(
             config('services.pusher.key'),
@@ -25,10 +27,8 @@ class PusherService
             config('services.pusher.app_id'),
             [
                 'cluster' => $cluster,
-                'useTLS' => config('services.pusher.useTLS', true),
-                'host' => $host,
-                'port' => config('services.pusher.port', 443),
-                'scheme' => config('services.pusher.scheme', 'https'),
+                'useTLS' => true,
+                // Remove custom host to use default Pusher host
             ]
         );
     }
@@ -55,7 +55,8 @@ class PusherService
             Log::error('Pusher message failed to send', [
                 'channel' => $channel,
                 'event' => $event,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return false;
         }
