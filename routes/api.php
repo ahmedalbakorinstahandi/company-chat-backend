@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\StoryController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -60,6 +61,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('stories', [StoryController::class, 'store']);
     Route::delete('stories/{id}', [StoryController::class, 'destroy']);
     Route::post('stories/{id}/view', [StoryController::class, 'view']);
+
+    // User routes
+    Route::get('users', [UserController::class, 'index']);
 });
 
 // Multi-cluster Pusher test
