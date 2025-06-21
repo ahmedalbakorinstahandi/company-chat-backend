@@ -33,7 +33,7 @@ class MessageController extends Controller
         })
             ->with(['sender', 'receiver', 'messageImages'])
             ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->paginate($request->limit ?? 20);
 
         return ResponseService::response([
             'status' => 200,
@@ -222,6 +222,10 @@ class MessageController extends Controller
             $chat->last_message = $lastReceivedMessage && $lastSentMessage 
                 ? ($lastReceivedMessage->created_at > $lastSentMessage->created_at ? $lastReceivedMessage : $lastSentMessage)
                 : ($lastReceivedMessage ?? $lastSentMessage);
+
+            if ($chat->last_message) {
+                $chat->last_message->load('messageImages');
+            }
 
             unset($chat->receivedMessages, $chat->sentMessages);
             return $chat;
