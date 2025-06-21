@@ -195,18 +195,20 @@ class MessageController extends Controller
 
         // Get all users that have exchanged messages with the authenticated user
         $chats = User::whereHas('sentMessages', function ($query) use ($user) {
-            $query->where('receiver_id', $user->id); // Users who sent messages to me
+            $query->where('receiver_id', '!=', $user->id)
+                ->where('sender_id', $user->id); // Users who sent messages to me
         })
             ->orWhereHas('receivedMessages', function ($query) use ($user) {
-                $query->where('sender_id', $user->id); // Users who received messages from me
+                $query->where('sender_id', '!=', $user->id)
+                    ->where('receiver_id', $user->id); // Users who received messages from me
             })
             ->withCount(['receivedMessages as unread_messages_count' => function ($query) use ($user) {
                 $query->whereNull('read_at')
-                    ->where('sender_id', '!=', $user->id);
-                //  ->where('receiver_id', $user->id);
+                    ->where('sender_id', '!=', $user->id)
+                    ->where('receiver_id', $user->id);
             }])
             ->with(['receivedMessages' => function ($query) use ($user) {
-                $query->where('sender_id', $user->id)
+                $query->where('sender_id', '!=', $user->id)
                     ->latest()
                     ->take(1);
             }, 'sentMessages' => function ($query) use ($user) {
