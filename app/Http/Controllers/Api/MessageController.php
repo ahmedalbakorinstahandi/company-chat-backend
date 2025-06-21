@@ -199,29 +199,29 @@ class MessageController extends Controller
             ->orWhere('receiver_id', $user->id)
             ->groupBy('sender_id', 'receiver_id')
             ->get()
-            ->map(function($message) use ($user) {
+            ->map(function ($message) use ($user) {
                 // Get the other user's ID (not the authenticated user)
-                $otherUserId = $message->sender_id == $user->id ? 
+                $otherUserId = $message->sender_id == $user->id ?
                     $message->receiver_id : $message->sender_id;
-                
+
                 return $otherUserId;
             })
             ->unique();
 
         $users = User::whereIn('id', $chats)
-            ->withCount(['receivedMessages as unread_count' => function($query) use ($user) {
+            ->withCount(['receivedMessages as unread_count' => function ($query) use ($user) {
                 $query->where('sender_id', $user->id)
                     ->whereNull('read_at');
             }])
             ->get();
 
-        foreach($users as $chatUser) {
+        foreach ($users as $chatUser) {
             // Get last message between users
-            $lastMessage = Message::where(function($query) use ($user, $chatUser) {
-                    $query->where('sender_id', $user->id)
-                        ->where('receiver_id', $chatUser->id);
-                })
-                ->orWhere(function($query) use ($user, $chatUser) {
+            $lastMessage = Message::where(function ($query) use ($user, $chatUser) {
+                $query->where('sender_id', $user->id)
+                    ->where('receiver_id', $chatUser->id);
+            })
+                ->orWhere(function ($query) use ($user, $chatUser) {
                     $query->where('sender_id', $chatUser->id)
                         ->where('receiver_id', $user->id);
                 })
@@ -237,6 +237,9 @@ class MessageController extends Controller
                 ->whereNull('read_at')
                 ->count();
         }
+
+        // paginate the users
+        $users = $users->paginate($request->limit ?? 20);
 
         return ResponseService::response([
             'status' => 200,
