@@ -23,6 +23,8 @@ class UserController extends Controller
             });
         }
 
+        $users->where('is_verified', true);
+
         $users = $users->paginate(100);
 
 
