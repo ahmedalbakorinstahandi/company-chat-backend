@@ -137,13 +137,14 @@ class MessageController extends Controller
 
         $user = User::auth();
 
-        // if (!$user || $message->receiver_id !== $user->id) {
-        //     MessageService::abort(403, 'Unauthorized');
-        // }
+        // تحديث جميع الرسائل السابقة من نفس المرسل كمقروءة
+        Message::where('sender_id', $message->sender_id)
+            ->where('receiver_id', $user->id)
+            ->whereNull('read_at')
+            ->where('created_at', '<=', $message->created_at)
+            ->update(['read_at' => now()]);
 
-        $message->update(['read_at' => now()]);
-
-        // Send Pusher notification
+        // Pusher إشعار
         $pusher = new PusherService();
         $pusherResult = $pusher->sendMessage('user.' . $message->sender_id, 'message.read', [
             'message' => $message,
@@ -160,10 +161,11 @@ class MessageController extends Controller
 
         return ResponseService::response([
             'status' => 200,
-            'message' => 'Message marked as read',
+            'message' => 'Messages marked as read',
             'data' => $message,
         ]);
     }
+
 
     public function destroy($id)
     {
