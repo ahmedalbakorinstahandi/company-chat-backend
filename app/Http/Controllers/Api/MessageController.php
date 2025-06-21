@@ -193,58 +193,62 @@ class MessageController extends Controller
     {
         $user = User::auth();
 
-        // Get all users that have exchanged messages with the authenticated user
-        $chats = Message::select('sender_id', 'receiver_id')
-            ->where('sender_id', $user->id)
-            ->orWhere('receiver_id', $user->id)
-            ->groupBy('sender_id', 'receiver_id')
-            ->get()
-            ->map(function ($message) use ($user) {
-                // Get the other user's ID (not the authenticated user)
-                $otherUserId = $message->sender_id == $user->id ?
-                    $message->receiver_id : $message->sender_id;
-
-                return $otherUserId;
-            })
-            ->unique();
-
-        $users = User::whereIn('id', $chats)
-            ->withCount(['receivedMessages as unread_count' => function ($query) use ($user) {
-                $query->where('sender_id', $user->id)
-                    ->whereNull('read_at');
-            }])
+        // استرجاع الرسائل الأخيرة مع كل مستخدم تم التفاعل معه
+        $messageQuery = Message::where(function ($query) use ($user) {
+            $query->where('sender_id', $user->id)
+                ->orWhere('receiver_id', $user->id);
+        })
+            ->latest('created_at')
             ->get();
 
-        foreach ($users as $chatUser) {
-            // Get last message between users
-            $lastMessage = Message::where(function ($query) use ($user, $chatUser) {
-                $query->where('sender_id', $user->id)
-                    ->where('receiver_id', $chatUser->id);
-            })
-                ->orWhere(function ($query) use ($user, $chatUser) {
-                    $query->where('sender_id', $chatUser->id)
-                        ->where('receiver_id', $user->id);
-                })
-                ->with('messageImages')
-                ->latest()
-                ->first();
+        // إنشاء المحادثات المميزة حسب كل مستخدم (الشخص الآخر فقط)
+        $grouped = $messageQuery->groupBy(function ($message) use ($user) {
+            return $message->sender_id === $user->id ? $message->receiver_id : $message->sender_id;
+        });
 
-            $chatUser->last_message = $lastMessage;
+        $chats = collect();
 
-            // Count unread messages
-            $chatUser->unread_messages = Message::where('sender_id', $chatUser->id)
-                ->where('receiver_id', $user->id)
+        foreach ($grouped as $otherUserId => $messages) {
+            $otherUser = User::find($otherUserId);
+            if (!$otherUser) continue;
+
+            $lastMessage = $messages->first();
+
+            $unreadCount = $messages->where('receiver_id', $user->id)
+                ->where('sender_id', $otherUserId)
                 ->whereNull('read_at')
                 ->count();
+
+            // تركيبه بنفس التنسيق المتوقع
+            $chat = clone $otherUser;
+
+            $chat->unread_messages_count = $unreadCount;
+            $chat->last_message = $lastMessage;
+            $chat->last_message->load('messageImages');
+
+            unset($chat->sentMessages);
+            unset($chat->receivedMessages);
+
+            $chats->push($chat);
         }
 
-        // paginate the users
-        $users = $users->paginate($request->limit ?? 20);
+        // دعم التصفّح
+        $perPage = 20;
+        $currentPage = request('page', 1);
+        $pagedChats = $chats->forPage($currentPage, $perPage)->values();
+
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedChats,
+            $chats->count(),
+            $perPage,
+            $currentPage,
+            ['path' => url()->current()]
+        );
 
         return ResponseService::response([
             'status' => 200,
-            'data' => $users->paginate(20),
-            'meta' => true
+            'data' => $paginator,
+            'meta' => true,
         ]);
     }
 }
