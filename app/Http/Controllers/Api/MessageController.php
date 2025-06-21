@@ -194,51 +194,54 @@ class MessageController extends Controller
         $user = User::auth();
 
         // Get all users that have exchanged messages with the authenticated user
-        $chats = User::whereHas('sentMessages', function ($query) use ($user) {
-            $query->where('receiver_id', '!=', $user->id)
-                ->where('sender_id', $user->id); // Users who sent messages to me
-        })
-            ->orWhereHas('receivedMessages', function ($query) use ($user) {
-                $query->where('sender_id', '!=', $user->id)
-                    ->where('receiver_id', $user->id); // Users who received messages from me
+        $chats = Message::select('sender_id', 'receiver_id')
+            ->where('sender_id', $user->id)
+            ->orWhere('receiver_id', $user->id)
+            ->groupBy('sender_id', 'receiver_id')
+            ->get()
+            ->map(function($message) use ($user) {
+                // Get the other user's ID (not the authenticated user)
+                $otherUserId = $message->sender_id == $user->id ? 
+                    $message->receiver_id : $message->sender_id;
+                
+                return $otherUserId;
             })
-            ->withCount(['receivedMessages as unread_messages_count' => function ($query) use ($user) {
-                $query->whereNull('read_at')
-                    ->where('sender_id', '!=', $user->id)
-                    ->where('receiver_id', $user->id);
+            ->unique();
+
+        $users = User::whereIn('id', $chats)
+            ->withCount(['receivedMessages as unread_count' => function($query) use ($user) {
+                $query->where('sender_id', $user->id)
+                    ->whereNull('read_at');
             }])
-            ->with(['receivedMessages' => function ($query) use ($user) {
-                $query->where('sender_id', '!=', $user->id)
-                    ->latest()
-                    ->take(1);
-            }, 'sentMessages' => function ($query) use ($user) {
-                $query->where('receiver_id', $user->id)
-                    ->latest()
-                    ->take(1);
-            }])
-            ->paginate(20);
+            ->get();
 
-        // Add last message to each chat
-        $chats->getCollection()->transform(function ($chat) {
-            $lastReceivedMessage = $chat->receivedMessages->first();
-            $lastSentMessage = $chat->sentMessages->first();
+        foreach($users as $chatUser) {
+            // Get last message between users
+            $lastMessage = Message::where(function($query) use ($user, $chatUser) {
+                    $query->where('sender_id', $user->id)
+                        ->where('receiver_id', $chatUser->id);
+                })
+                ->orWhere(function($query) use ($user, $chatUser) {
+                    $query->where('sender_id', $chatUser->id)
+                        ->where('receiver_id', $user->id);
+                })
+                ->with('messageImages')
+                ->latest()
+                ->first();
 
-            $chat->last_message = $lastReceivedMessage && $lastSentMessage
-                ? ($lastReceivedMessage->created_at > $lastSentMessage->created_at ? $lastReceivedMessage : $lastSentMessage)
-                : ($lastReceivedMessage ?? $lastSentMessage);
+            $chatUser->last_message = $lastMessage;
 
-            if ($chat->last_message) {
-                $chat->last_message->load('messageImages');
-            }
-
-            unset($chat->receivedMessages, $chat->sentMessages);
-            return $chat;
-        });
+            // Count unread messages
+            $chatUser->unread_messages = Message::where('sender_id', $chatUser->id)
+                ->where('receiver_id', $user->id)
+                ->whereNull('read_at')
+                ->count();
+        }
 
         return ResponseService::response([
             'status' => 200,
-            'data' => $chats,
-            'meta' => true,
+            'data' => $users->paginate(20),
+            'meta' => true
         ]);
     }
 }
