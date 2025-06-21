@@ -107,7 +107,7 @@ class MessageController extends Controller
                     ->withData(['message_id' => $message->id]);
 
                 app('firebase.messaging')->sendMulticast($messageData, $receiverDeviceTokens);
-                
+
                 Log::info('Firebase notification sent successfully', [
                     'message_id' => $message->id,
                     'device_tokens_count' => count($receiverDeviceTokens)
@@ -189,38 +189,39 @@ class MessageController extends Controller
 
 
     // get chats
-    public function getUserChats(Request $request){
+    public function getUserChats(Request $request)
+    {
         $user = User::auth();
 
         // Get all users that have exchanged messages with the authenticated user
         $chats = User::whereHas('sentMessages', function ($query) use ($user) {
             $query->where('receiver_id', $user->id); // Users who sent messages to me
         })
-        ->orWhereHas('receivedMessages', function ($query) use ($user) {
-            $query->where('sender_id', $user->id); // Users who received messages from me
-        })
-        ->withCount(['receivedMessages as unread_messages_count' => function($query) use ($user) {
-            $query->whereNull('read_at');
-                //  ->where('sender_id', '!=', $user->id);
+            ->orWhereHas('receivedMessages', function ($query) use ($user) {
+                $query->where('sender_id', $user->id); // Users who received messages from me
+            })
+            ->withCount(['receivedMessages as unread_messages_count' => function ($query) use ($user) {
+                $query->whereNull('read_at')
+                    ->where('sender_id', '!=', $user->id);
                 //  ->where('receiver_id', $user->id);
-        }])
-        ->with(['receivedMessages' => function($query) use ($user) {
-            $query->where('sender_id', $user->id)
-                 ->latest()
-                 ->take(1);
-        }, 'sentMessages' => function($query) use ($user) {
-            $query->where('receiver_id', $user->id)
-                 ->latest()
-                 ->take(1);
-        }])
-        ->paginate(20);
+            }])
+            ->with(['receivedMessages' => function ($query) use ($user) {
+                $query->where('sender_id', $user->id)
+                    ->latest()
+                    ->take(1);
+            }, 'sentMessages' => function ($query) use ($user) {
+                $query->where('receiver_id', $user->id)
+                    ->latest()
+                    ->take(1);
+            }])
+            ->paginate(20);
 
         // Add last message to each chat
-        $chats->getCollection()->transform(function($chat) {
+        $chats->getCollection()->transform(function ($chat) {
             $lastReceivedMessage = $chat->receivedMessages->first();
             $lastSentMessage = $chat->sentMessages->first();
-            
-            $chat->last_message = $lastReceivedMessage && $lastSentMessage 
+
+            $chat->last_message = $lastReceivedMessage && $lastSentMessage
                 ? ($lastReceivedMessage->created_at > $lastSentMessage->created_at ? $lastReceivedMessage : $lastSentMessage)
                 : ($lastReceivedMessage ?? $lastSentMessage);
 
