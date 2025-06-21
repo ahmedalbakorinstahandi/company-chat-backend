@@ -145,7 +145,7 @@ class MessageController extends Controller
 
         // Send Pusher notification
         $pusher = new PusherService();
-        $pusherResult = $pusher->sendMessage('private-user.' . $message->sender_id, 'message.read', [
+        $pusherResult = $pusher->sendMessage('user.' . $message->sender_id, 'message.read', [
             'message' => $message,
             'read_by' => $user,
             'timestamp' => now()->toISOString()
