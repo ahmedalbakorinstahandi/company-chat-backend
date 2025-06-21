@@ -16,16 +16,14 @@ class UserController extends Controller
         $users = User::query();
 
         if ($request->has('search')) {
-            $users->where(function($query) use ($request) {
+            $users->where(function ($query) use ($request) {
                 $query->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ['%' . $request->search . '%'])
                     ->orWhere('username', 'like', '%' . $request->search . '%')
                     ->orWhere('email', 'like', '%' . $request->search . '%');
             });
         }
 
-        if ($request->has('limit')) {
-            $users->limit($request->limit);
-        }
+        $users = $users->paginate(100);
 
 
         return ResponseService::response([
