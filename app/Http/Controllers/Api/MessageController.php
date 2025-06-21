@@ -200,9 +200,9 @@ class MessageController extends Controller
             $query->where('sender_id', $user->id); // Users who received messages from me
         })
         ->withCount(['receivedMessages as unread_messages_count' => function($query) use ($user) {
-            $query->whereNull('read_at')
+            $query->whereNull('read_at');
                 //  ->where('sender_id', '!=', $user->id);
-                 ->where('receiver_id', $user->id);
+                //  ->where('receiver_id', $user->id);
         }])
         ->with(['receivedMessages' => function($query) use ($user) {
             $query->where('sender_id', $user->id)
